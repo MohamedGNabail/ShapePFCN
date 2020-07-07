@@ -491,7 +491,7 @@ layer {
   bottom: "label"
   top: "loss"
   loss_param {
-    ignore_label: 255
+    ignore_label: -1
     normalization: VALID
   }
 }
@@ -502,6 +502,6 @@ layer {
   bottom: "label"
   top: "accuracy"
   accuracy_param {
-    ignore_label: 255
+    ignore_label: -1
   }
 }

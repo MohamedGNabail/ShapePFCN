@@ -355,7 +355,7 @@ void MeshProcessor::setGroundTruthLabels(std::map<string, int>& label_map, bool 
   for (Thea::Graphics::MeshGroup<Mesh>::MeshConstIterator mi = mesh_container_ptr->meshesBegin(); mi != mesh_container_ptr->meshesEnd(); ++mi)
   {
     string label_name = convert_raw_label_name((**mi).getName());
-    THEA_CONSOLE << "Found part in structured mesh with label: " << label_name;
+    //THEA_CONSOLE << "Found part in structured mesh with label: " << label_name;
 
     std::map<string, int>::const_iterator it = label_map.find(label_name);
     int label_id = -1;
@@ -732,7 +732,7 @@ void MeshProcessor::initFaceLabelProbabilities(const size_t num_classes, const V
   face_unary_probabilities = 1.0f / (float)num_classes;
 }
 
-void MeshProcessor::projectImageLabelProbabilitiesToMesh(const std::vector<cv::Mat>& output_channels, const cv::Mat& image_to_triangle_ids, const ViewPoolingOperator& view_pooling_operator)
+void MeshProcessor::projectImageLabelProbabilitiesToMesh(const std::vector<cv::Mat>& output_channels, const cv::Mat& image_to_triangle_ids,const cv::Mat& depth_img, ,const ViewPoolingOperator& view_pooling_operator)
 {
 	for (int c = 0; c < output_channels.size(); ++c)
 	{
@@ -746,11 +746,13 @@ void MeshProcessor::projectImageLabelProbabilitiesToMesh(const std::vector<cv::M
 		{
 			const float* Oi = output_channels[c].ptr<float>(i);
 			const cv::Vec3b* Ti = image_to_triangle_ids.ptr<cv::Vec3b>(i);
+            const cv::Vec3b* De = depth_img.ptr<cv::Vec3b>(i);
+
 			for (int j = 0; j < output_channels[c].cols; ++j)
 			{
-				unsigned int b = (unsigned int)Ti[j][0];  // BGR format
-				unsigned int g = (unsigned int)Ti[j][1];
-				unsigned int r = (unsigned int)Ti[j][2];
+				unsigned int b = (unsigned int)De[j][0];  // BGR format
+				unsigned int g = (unsigned int)De[j][1];
+				unsigned int r = (unsigned int)De[j][2];
 				if (r == 255 && g == 255 && b == 255) // no pixel->triangle association
 					continue;
 				unsigned int face_index = r + 256 * g + 65536 * b;
@@ -991,9 +993,15 @@ float MeshProcessor::computeMeshLabelingAccuracy(const std::map<string, int>& la
 
 	float accuracy = 0.0f;
   for (unsigned int f = 0; f < number_of_faces; ++f)
-    if (inferred_face_labels.at<int>(f) == ground_truth_face_labels[f])
-      accuracy += face_areas[f];
-
+  {
+      if (ground_truth_face_labels[f] ==-1)
+      {
+        continue ;
+      }
+      if (inferred_face_labels.at<int>(f) == ground_truth_face_labels[f]) {
+          accuracy += face_areas[f];
+      }
+  }
   // no need to divide with total face area - face areas are already normalized
 	return accuracy;
 }

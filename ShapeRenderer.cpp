@@ -151,7 +151,7 @@ void ShapeRendererImpl::resetArgs()
 	color_mode = COLOR_SINGLE_RGB;
 	// Gray color for the phong shaded image
 	primary_color = ColorRGBA(0.82745098f, 0.82745098f, 0.82745098f, 1.f); //0.0f, 0.0f, 0.0f, 1.0f);  //(1.0f, 0.9f, 0.8f, 1.0f); 
-	background_color = ColorRGBA(1, 1, 1, 1);
+	background_color = ColorRGBA(0, 0, 0, 1);
 	antialiasing_level = 1;
 	flat = false;
 	camera_distance = 0;

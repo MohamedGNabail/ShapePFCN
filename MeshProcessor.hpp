@@ -121,7 +121,7 @@ public:
 
 #ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE
   void initFaceLabelProbabilities(const size_t num_classes, const ViewPoolingOperator& view_pooling_operator);
-  void projectImageLabelProbabilitiesToMesh(const std::vector<cv::Mat>& output_channels, const cv::Mat& image_to_triangle_ids, const ViewPoolingOperator& view_pooling_operator);
+  void projectImageLabelProbabilitiesToMesh(const std::vector<cv::Mat>& output_channels, const cv::Mat& image_to_triangle_ids,const cv::Mat& depth_img ,const ViewPoolingOperator& view_pooling_operator);
   void computeMeshNormalizedUnaryFeatures(const string& input_output_filename, bool rewrite_output_filename);
   void computeMeshPairwiseFeatures(const string& input_output_filename, bool rewrite_output_filename);
   void freeMeshCRFData();

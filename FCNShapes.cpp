@@ -56,7 +56,7 @@ void MVFCN::train()
   }
 
 
-  // read any pre-existing labels 
+  // read any pre-existing labels
   label_map.clear();
   ifstream in_labels_file(FilePath::concat(Settings::train_meshes_path, LABELS_FILENAME));
   if (in_labels_file.good())
@@ -130,14 +130,14 @@ void MVFCN::train()
       mesh_processor_ptr->setValidationFlag();
     if (mesh_processor_ptr->getNumberOfFaces() > Settings::max_number_of_faces)
     {
-      THEA_WARNING << "Mesh is way too big (#" << mesh_processor_ptr->getNumberOfFaces() << " faces) and will be ignored. You may overcome this warning by increasing the max-number-of-faces cmd line option (you may however run out of GPU mem)"; 
+      THEA_WARNING << "Mesh is way too big (#" << mesh_processor_ptr->getNumberOfFaces() << " faces) and will be ignored. You may overcome this warning by increasing the max-number-of-faces cmd line option (you may however run out of GPU mem)";
       mesh_processor_ptr.reset();
       continue;
     }
     if (!Settings::skip_train_rendering)
     {
       RenderViews rv(mesh_processor_ptr, Settings::train_meshes_path, label_map);
-      rv.render();      
+      rv.render();
       if (!Settings::baseline_rendering)  // in the case if multi-scale rendering, adding additional dodecahedron views as one more camera orbit helps a bit
       {
         Settings::baseline_rendering = true;
@@ -170,25 +170,18 @@ void MVFCN::train()
   if (meshes_processor_ptr.empty())
     return;
 
-#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE  
-  crf = std::shared_ptr<MeshCRF>(new MeshCRF(label_map, FilePath::concat(Settings::train_meshes_path, OUTPUT_MESH_METADATA_FOLDER), meshes_processor_ptr[0]->getNumberOfPairwiseFeatures()));  
+#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE
+  crf = std::shared_ptr<MeshCRF>(new MeshCRF(label_map, FilePath::concat(Settings::train_meshes_path, OUTPUT_MESH_METADATA_FOLDER), meshes_processor_ptr[0]->getNumberOfPairwiseFeatures()));
   loadState(FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), STATE_FILENAME));
 
   if (!Settings::skip_fcn)
   {
     if (!Settings::skip_fcn_train) // first training pass (find #iterations to use, validation viewpoint configuratiion)
     {
-      if ((int)state[num_camera_orbits + 2] < 1)
-      {
-        fcntrain(label_map.size(), Settings::train_meshes_path, false);
-        fcntest(label_map.size(), Settings::train_meshes_path, Settings::train_meshes_path, false);
-        saveState(FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), STATE_FILENAME));
-        deleteShapshots(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), "frontend_vgg_model_iter_");
-      }
-      fcntrain(label_map.size(), Settings::train_meshes_path, true);  // second pass including validation data
+      fcntrain((label_map.size()-1), Settings::train_meshes_path, true);  // second pass including validation data
     }
 
-    fcntest(label_map.size(), Settings::train_meshes_path, Settings::train_meshes_path, false, true);      
+    fcntest((label_map.size()-1), Settings::train_meshes_path, Settings::train_meshes_path, false, true);
     saveState(FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), STATE_FILENAME));
   }
 
@@ -204,7 +197,7 @@ void MVFCN::train()
 
   for (int m = 0; m < meshes_processor_ptr.size(); ++m)
   {
-    THEA_CONSOLE << "Checking learned model on training mesh " << m + 1 << "/" << meshes_processor_ptr.size() << ": " << meshes_processor_ptr[m]->getMeshPath() << "...";    
+    THEA_CONSOLE << "Checking learned model on training mesh " << m + 1 << "/" << meshes_processor_ptr.size() << ": " << meshes_processor_ptr[m]->getMeshPath() << "...";
     mesh_labeling_accuracies.push_back(crf->mfinference(meshes_processor_ptr[m]));
     meshes_processor_ptr[m]->freeMeshCRFData();
   }
@@ -213,10 +206,10 @@ void MVFCN::train()
   mesh_labeling_accuracies.clear();
 
   if (!Settings::skip_mvfcn)
-  {    
+  {
     if (!Settings::skip_mvfcn_train)
       mvfcntrain(label_map.size(), Settings::train_meshes_path, !Settings::do_not_use_crf_mvfcn);
-    fcntest(label_map.size(), Settings::train_meshes_path, Settings::train_meshes_path, true);
+    fcntest((label_map.size()-1), Settings::train_meshes_path, Settings::train_meshes_path, true);
     saveState(FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), STATE_FILENAME));
   }
 
@@ -227,7 +220,7 @@ void MVFCN::train()
 
   for (int m = 0; m < meshes_processor_ptr.size(); ++m)
   {
-    THEA_CONSOLE << "Checking jointly learned model on training mesh " << m + 1 << "/" << meshes_processor_ptr.size() << ": " << meshes_processor_ptr[m]->getMeshPath() << "...";    
+    THEA_CONSOLE << "Checking jointly learned model on training mesh " << m + 1 << "/" << meshes_processor_ptr.size() << ": " << meshes_processor_ptr[m]->getMeshPath() << "...";
     mesh_labeling_accuracies.push_back(crf->mfinference(meshes_processor_ptr[m]));
     meshes_processor_ptr[m]->freeMeshCRFData();
   }
@@ -261,7 +254,7 @@ void MVFCN::test()
     return;
   }
 
-  // read labels 
+  // read labels
   label_map.clear();
   ifstream in_labels_file(FilePath::concat(Settings::train_meshes_path, LABELS_FILENAME));
   if (!in_labels_file.good())
@@ -316,12 +309,12 @@ void MVFCN::test()
     }
     if (Settings::do_only_rendering)
     {
-      mesh_processor_ptr->freeMeshData();      
+      mesh_processor_ptr->freeMeshData();
       mesh_processor_ptr.reset();
       THEA_CONSOLE << "Done rendering " << list_mesh_paths[m];
       continue;
     }
-#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE      
+#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE
     mesh_processor_ptr->computeMeshPairwiseFeatures(FilePath::concat(FilePath::concat(Settings::test_meshes_path, OUTPUT_MESH_METADATA_FOLDER), FilePath::baseName(mesh_processor_ptr->getMeshPath()) + "_crf_pairwise_features.bin"), false);
 #endif
     mesh_processor_ptr->freeMeshData();
@@ -332,12 +325,12 @@ void MVFCN::test()
   if (meshes_processor_ptr.empty())
     return;
 
-#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE   
+#ifndef SKIP_COMPILING_CAFFE_NETWORK_CODE
   crf = std::shared_ptr<MeshCRF>(new MeshCRF(label_map, FilePath::concat(Settings::test_meshes_path, OUTPUT_MESH_METADATA_FOLDER), meshes_processor_ptr[0]->getNumberOfPairwiseFeatures()));
   loadState(FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), STATE_FILENAME));
- 
+
   if (!Settings::skip_fcn)
-    fcntest(label_map.size(), Settings::train_meshes_path, Settings::test_meshes_path, false); 
+    fcntest((label_map.size()-1), Settings::train_meshes_path, Settings::test_meshes_path, false); 
 
   string crf_parameter_file = FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), DISJOINT_CRF_PARAMETERS_FILENAME);
   if (!crf->loadCRFParameters(crf_parameter_file))
@@ -354,7 +347,7 @@ void MVFCN::test()
   mesh_labeling_accuracies.clear();
 
   if (!Settings::skip_mvfcn) // will overwrite the above fcntest results
-    fcntest(label_map.size(), Settings::train_meshes_path, Settings::test_meshes_path, state[num_camera_orbits + 1] <= state[num_camera_orbits]);
+    fcntest((label_map.size()-1), Settings::train_meshes_path, Settings::test_meshes_path, state[num_camera_orbits + 1] <= state[num_camera_orbits]);
 
   if (state[num_camera_orbits + 1] <= state[num_camera_orbits])
     crf_parameter_file = FilePath::concat(FilePath::concat(Settings::train_meshes_path, LEARNING_METADATA_FOLDER), CRF_PARAMETERS_FILENAME);
@@ -368,6 +361,7 @@ void MVFCN::test()
     meshes_processor_ptr[m]->freeMeshCRFData();
   }
   outputMeshLabelingAccuracies(Settings::test_meshes_path, true, false);
+THEA_CONSOLE << "All have been done ElHamdulliah";
 #endif
 }
 
@@ -651,7 +645,7 @@ void MVFCN::mvfcntrain(const size_t num_classes, const string& train_dataset_pat
   boost::regex regex_model_net(OUTPUT_MODEL_FILENAME);
   boost::regex regex_solver_mode("solver_mode: GPU");
   boost::regex regex_iter_size("iter_size: 8");
-  boost::regex regex_max_iter("max_iter: 100");  
+  boost::regex regex_max_iter("max_iter: 100");
 
 
   // train network definition
@@ -838,7 +832,7 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
     net->CopyTrainedLayersFromHDF5(FilePath::concat(FilePath::concat(train_dataset_path, LEARNING_METADATA_FOLDER), string(OUTPUT_PRETRAINED_MODEL_FILENAME) + "_iter_" + std::to_string(Settings::pretraining_num_epochs) + ".hdf5"));
 
   THEA_CONSOLE << "Computing image-based label probabilities (CRF unary term) for " << meshes_processor_ptr.size() << " meshes.";
-  float mean_image_accuracy = 0.0f;  
+  float mean_image_accuracy = 0.0f;
   vector<float> mean_image_accuracy_per_view(num_camera_orbits, 0.0f);
   vector<float> num_images_with_accuracy_per_view(num_camera_orbits, 0.0f);
   vector< vector <string> > rendered_image_filenames_per_view(num_camera_orbits);
@@ -899,14 +893,31 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
       aux_image_filename = boost::regex_replace(aux_image_filename, regex_rendered_image_pattern, Thea::FilePath::baseName(meshes_processor_ptr[m]->getMeshPath()) + "_aux_");  // SDF/UP change
       cv::Mat aux_img = cv::imread(aux_image_filename, CV_LOAD_IMAGE_GRAYSCALE);  // SDF/UP change
 
+
+
+      // attempt to find triangle id image
+      string triangleID_image_filename = rendered_image_filenames[i];
+      triangleID_image_filename = boost::regex_replace(triangleID_image_filename, regex_folder, TRIANGLEID_IMAGES_FOLDER);
+      triangleID_image_filename = boost::regex_replace(triangleID_image_filename, regex_rendered_image_pattern, Thea::FilePath::baseName(meshes_processor_ptr[m]->getMeshPath()) + "_fid_");
+      cv::Mat triangleID_img = cv::imread(triangleID_image_filename, CV_LOAD_IMAGE_UNCHANGED);
+      if (!triangleID_img.data) // Check for invalid input
+      {
+        THEA_ERROR << "Could not open or find the triangle ID image, cannot project image to mesh: " << triangleID_image_filename;
+        continue;image2mesh_data_
+      }
+      meshes_processor_ptr[m]->projectImageLabelProbabilitiesToMesh(output_channels, triangleID_img,depth_img ,view_pooling_type);
+
+
+      //MNabail: moved image mean subtraction/conversion after face index calculation to be able to use depth image in white background identification
+
       Blob<float>* input_layer = net->input_blobs()[0];
       std::vector<cv::Mat> input_channels;
       float* input_data = input_layer->mutable_cpu_data();
       for (int c = 0; c < input_layer->channels(); ++c)
       {
-        cv::Mat channel(input_layer->height(), input_layer->width(), CV_32F, input_data);
-        input_channels.push_back(channel);
-        input_data += input_layer->height() * input_layer->width();
+          cv::Mat channel(input_layer->height(), input_layer->width(), CV_32F, input_data);
+          input_channels.push_back(channel);
+          input_data += input_layer->height() * input_layer->width();
       }
 
       /* Convert the input image to the input image format of the network. */
@@ -957,23 +968,12 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
       float* output_data = output_layer_blob->mutable_cpu_data();
       for (int c = 0; c < output_layer_blob->channels(); ++c)
       {
-        cv::Mat channel(output_layer_blob->height(), output_layer_blob->width(), CV_32F, output_data);
-        //cv::resize(channel, channel, cv::Size2i(Settings::render_size, Settings::render_size), CV_INTER_CUBIC); // if no deconvolution is used
-        output_channels.push_back(channel);
-        output_data += output_layer_blob->width() * output_layer_blob->height();
+          cv::Mat channel(output_layer_blob->height(), output_layer_blob->width(), CV_32F, output_data);
+          //cv::resize(channel, channel, cv::Size2i(Settings::render_size, Settings::render_size), CV_INTER_CUBIC); // if no deconvolution is used
+          output_channels.push_back(channel);
+          output_data += output_layer_blob->width() * output_layer_blob->height();
       }
 
-      // attempt to find triangle id image
-      string triangleID_image_filename = rendered_image_filenames[i];
-      triangleID_image_filename = boost::regex_replace(triangleID_image_filename, regex_folder, TRIANGLEID_IMAGES_FOLDER);
-      triangleID_image_filename = boost::regex_replace(triangleID_image_filename, regex_rendered_image_pattern, Thea::FilePath::baseName(meshes_processor_ptr[m]->getMeshPath()) + "_fid_");
-      cv::Mat triangleID_img = cv::imread(triangleID_image_filename, CV_LOAD_IMAGE_UNCHANGED);
-      if (!triangleID_img.data) // Check for invalid input
-      {
-        THEA_ERROR << "Could not open or find the triangle ID image, cannot project image to mesh: " << triangleID_image_filename;
-        continue;
-      }
-      meshes_processor_ptr[m]->projectImageLabelProbabilitiesToMesh(output_channels, triangleID_img, view_pooling_type);
 
       // attempt to find ground-truth segmentation image (for measuring image-based accuracy)
       string ground_truth_segmentation_image_filename = rendered_image_filenames[i];
@@ -986,13 +986,21 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
         continue;
       }
 
+      //MNabail: reread depth image because of image mean subtraction/conversion after face index calculation to be able to use depth image in white background identification
+
+      string depth_image_filename = rendered_image_filenames[i];
+      depth_image_filename = boost::regex_replace(depth_image_filename, regex_folder, DEPTH_IMAGES_FOLDER);
+      depth_image_filename = boost::regex_replace(depth_image_filename, regex_rendered_image_pattern, Thea::FilePath::baseName(meshes_processor_ptr[m]->getMeshPath()) + "_dep_");
+      cv::Mat depth_img = cv::imread(depth_image_filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+
       // produce labeled images (for debugging)
       cv::Mat output_max_prob_image(Settings::render_size, Settings::render_size, CV_8U);
       for (int j = 0; j < Settings::render_size; ++j)
       {
         for (int k = 0; k < Settings::render_size; ++k)
         {
-          if (label_img.at<unsigned char>(j, k) == 255) // background
+          if (depth_img.at<unsigned char>(j, k) == 255) // background
           {
             output_max_prob_image.at<unsigned char>(j, k) = 255;
             continue;
@@ -1052,7 +1060,6 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
       ///////////////////////////////////// DBG /////////////////////////////////////
       ///////////////////////////////////// DBG /////////////////////////////////////
 
-
       // meassure image-based labeling accuracy
       float iter_accuracy = 0.0f;
       float count_non_background_pixels = 0.0f;
@@ -1060,7 +1067,7 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
       {
         for (int k = 0; k < Settings::render_size; ++k)
         {
-          if (label_img.at<unsigned char>(j, k) == 255)
+          if (depth_img.at<unsigned char>(j, k) == 255) //Use depth image background because label image contains 0 for both background and unlabelled
           {
             continue;
           }
@@ -1084,7 +1091,7 @@ bool MVFCN::fcntest(const size_t num_classes, const string& train_dataset_path, 
           num_images_with_accuracy_per_view[view_id]++;
         }
       }
-       
+
       THEA_CONSOLE << "  + Tested image " << i + 1 << "/" << rendered_image_filenames.size() << ": " << FilePath::baseName(rendered_image_filenames[i]) << " [accuracy = " << 100.0f * iter_accuracy << "] (view id: " << view_id << ", ground truth seg. image: " << FilePath::baseName(ground_truth_segmentation_image_filename) << ")";
     } // end of mesh m processing
 
@@ -1206,7 +1213,7 @@ string MVFCN::findLatestShapshot(const string& search_path, const string& snapsh
       continue;
 
     string matching_snapshot_filename_only_iter_and_extension = matching_snapshot_filenames[f].substr(pos + snapshot_base_name.length() );
-    
+
     string::size_type pos2 = matching_snapshot_filename_only_iter_and_extension.find_last_of(".solverstate");
     if (pos2 == string::npos)
       continue;
@@ -1262,7 +1269,7 @@ void MVFCN::loadState(const string& state_filename)
   if (!state_file.good())
     return;
   for (size_t v = 0; v < state.size(); ++v)
-  {    
+  {
     state_file >> state[v];
   }
   state_file.close();

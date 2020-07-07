@@ -68,6 +68,7 @@ int main(int argc, char * argv[])
   if (!Settings::test_meshes_path.empty() && !Settings::skip_testing)
   {
     mvfcn.test();
+    std::cerr << "All done " ;
   }
 
 	return 0;
